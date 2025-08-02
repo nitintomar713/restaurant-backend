@@ -2,7 +2,6 @@
   "name": "restaurant-backend",
   "version": "1.0.0",
   "main": "Server.js",
-",
   "scripts": {
     "start": "node Server.js",
     "dev": "nodemon Server.js"
