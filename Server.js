@@ -20,7 +20,7 @@ app.use(helmet());
 
 // CORS setup
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  origin: ['https://vsfastfood.netlify.app', 'https://vsfastfoodadmin.netlify.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   credentials: true
 }));
