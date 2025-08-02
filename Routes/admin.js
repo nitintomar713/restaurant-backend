@@ -2,9 +2,8 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const Dish = require('../models/Dish');
-const Review = require('../models/Review');
-const User = require('../models/User');
+const Review = require('../Models/Review');
+const User = require('../Models/User');
 const router = express.Router();
 
 // Ensure that the 'uploads' folder exists

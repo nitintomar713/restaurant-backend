@@ -53,7 +53,6 @@ app.get('/', (req, res) => {
 
 // ✅ Routes
 const reviewRoutes = require('./Routes/reviewRoutes');
-const suggestionRoutes = require('./Routes/suggestions');
 const adminRoutes = require('./Routes/admin');
 const leaderboardRoutes = require('./Routes/leaderboard');
 const analyticsRoutes = require('./Routes/analyticsRoutes');
@@ -75,7 +74,6 @@ app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/hero-offers', heroOfferRoutes);
 app.use('/api/reviews', reviewRoutes);
-app.use('/api/suggestions', suggestionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/analytics', analyticsRoutes);
