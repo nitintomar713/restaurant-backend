@@ -1,21 +1,29 @@
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const cloudinary = require('cloudinary');
 
-cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.CLOUD_API_KEY,
-  api_secret: process.env.CLOUD_API_SECRET,
-});
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: 'restaurant2030/reviews',
-    allowed_formats: ['jpg', 'png', 'mp4'],
-    transformation: [{ width: 800, height: 800, crop: 'limit' }],
-  },
-});
+/**
+ * Multer middleware configured to save locally.
+ * @returns multer middleware
+ */
+const getUploadMiddleware = () => {
+  // console.log(`⚙️ Initializing multer middleware with local storage`);
 
-const upload = multer({ storage });
-module.exports = { cloudinary, upload };
+  const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, 'uploads/'); // local uploads folder
+    },
+    filename: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + '-' + file.originalname.split('.').slice(0, -1).join('.');
+      const ext = path.extname(file.originalname);
+      cb(null, uniqueSuffix + ext);
+    },
+  });
+
+  return multer({ storage });
+};
+
+module.exports.getUploadMiddleware = getUploadMiddleware;
+module.exports.cloudinary = cloudinary;
