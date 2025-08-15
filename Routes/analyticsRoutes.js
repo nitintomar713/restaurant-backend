@@ -1,44 +1,53 @@
 const express = require('express');
 const router = express.Router();
 const Analytics = require('../Models/Analytics');
+const Order = require('../Models/Order');
 
-// ✅ GET today's analytics data
-router.get('/today', async (req, res) => {
+// ✅ Get today's analytics with products sold
+router.get('/', async (req, res) => {
   try {
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const today = new Date().toISOString().split('T')[0];
+
+    // 📊 Get today's analytics summary
     const analytics = await Analytics.findOne({ date: today });
-
     if (!analytics) {
-      return res.status(404).json({ message: 'No analytics data found for today.' });
+      return res.status(404).json({ message: 'No analytics data for today.' });
     }
 
-    res.json(analytics);
-  } catch (error) {
-    console.error("❌ Error fetching analytics data:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+    // 🛒 Get today's orders
+    const todayOrders = await Order.find({
+      createdAt: {
+        $gte: new Date(today),
+        $lt: new Date(new Date(today).setDate(new Date(today).getDate() + 1))
+      }
+    });
 
-// 🛠️ POST today's analytics data (create or update)
-router.post('/today', async (req, res) => {
-  try {
-    const today = new Date().toISOString().slice(0, 10);
-    const { totalOrders, totalRevenue } = req.body;
+    // 🍔 Aggregate products
+    const productMap = {};
+    todayOrders.forEach(order => {
+      order.items.forEach(item => {
+        const key = `${item.name} (${item.size})`;
+        if (!productMap[key]) {
+          productMap[key] = 0;
+        }
+        productMap[key] += item.quantity;
+      });
+    });
 
-    if (totalOrders == null || totalRevenue == null) {
-      return res.status(400).json({ message: 'totalOrders and totalRevenue are required.' });
-    }
+    const productsSold = Object.entries(productMap).map(([name, quantity]) => ({
+      name,
+      quantity
+    }));
 
-    const updatedAnalytics = await Analytics.findOneAndUpdate(
-      { date: today },
-      { $set: { totalOrders, totalRevenue } },
-      { upsert: true, new: true }
-    );
+    // 📦 Return analytics + product list
+    res.json({
+      ...analytics.toObject(),
+      products: productsSold
+    });
 
-    res.json(updatedAnalytics);
-  } catch (error) {
-    console.error("❌ Error updating analytics data:", error);
-    res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    console.error('❌ Error fetching analytics:', err.message);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
 
