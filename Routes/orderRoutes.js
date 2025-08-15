@@ -28,7 +28,7 @@ router.post('/:orderId/send-pdf', async (req, res) => {
         },
       });
 
-      await transporter.sendMail({
+      const mailOptions = {
         from: `"V.S. Fast Food" <${process.env.EMAIL_USER}>`,
         to: order.customer.email,
         subject: `Your Bill - V.S. Fast Food Order #${order._id}`,
@@ -39,7 +39,9 @@ router.post('/:orderId/send-pdf', async (req, res) => {
             content: pdfData,
           },
         ],
-      });
+      };
+
+      await transporter.sendMail(mailOptions);
 
       // 📊 Update analytics
       const today = new Date().toISOString().split('T')[0];
@@ -50,9 +52,6 @@ router.post('/:orderId/send-pdf', async (req, res) => {
             totalOrders: 1,
             totalRevenue: order.totalAmount,
           },
-          $push: {
-            products: { $each: order.items.map(item => ({ name: item.name, quantity: item.quantity })) }
-          }
         },
         { upsert: true, new: true }
       );
@@ -60,11 +59,12 @@ router.post('/:orderId/send-pdf', async (req, res) => {
       // ❌ Delete order
       await Order.findByIdAndDelete(order._id);
 
-      res.status(200).json({ message: 'PDF sent, analytics updated with products, and order deleted.' });
+      res.status(200).json({ message: 'PDF sent, analytics updated, and order deleted.' });
     });
 
-    // 🖨️ PDF content
+    // 🖨️ Start PDF content
     const logoUrl = 'https://i.ibb.co/sp2HJdmc/VSFF-Logo-min.png';
+
     https.get(logoUrl, (imgRes) => {
       const chunks = [];
       imgRes.on('data', chunk => chunks.push(chunk));
@@ -135,7 +135,7 @@ router.post('/', async (req, res) => {
 
     await newOrder.save();
 
-    // 📊 Update analytics
+    // Update analytics
     const today = new Date().toISOString().split('T')[0];
     await Analytics.findOneAndUpdate(
       { date: today },
@@ -144,15 +144,12 @@ router.post('/', async (req, res) => {
           totalOrders: 1,
           totalRevenue: totalAmount,
         },
-        $push: {
-          products: { $each: items.map(item => ({ name: item.name, quantity: item.quantity })) }
-        }
       },
       { upsert: true, new: true }
     );
 
     res.status(201).json({
-      message: '✅ Order created successfully & analytics updated with products',
+      message: '✅ Order created successfully',
       order: newOrder,
     });
   } catch (err) {
@@ -161,5 +158,44 @@ router.post('/', async (req, res) => {
   }
 });
 
+// ✅ Get all orders
+router.get('/', async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .populate('customer', 'name email phone')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(orders);
+  } catch (err) {
+    console.error('❌ Error fetching orders:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// ✅ Get orders for specific customer
+router.get('/customer-orders/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const customer = await Customer.findOne({ email });
+
+    if (!customer) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    const orders = await Order.find({ customer: customer._id }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      customer: {
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+      },
+      orders,
+    });
+  } catch (err) {
+    console.error('❌ Error fetching customer orders:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 module.exports = router;
