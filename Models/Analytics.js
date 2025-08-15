@@ -16,6 +16,12 @@ const analyticsSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    products: [
+      {
+        name: String,
+        quantity: Number
+      }
+    ]
   },
   { timestamps: true }
 );
